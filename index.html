@@ -932,8 +932,10 @@
     </div>
   </div>
 
-  <!-- EMBEDDED VANILLA JAVASCRIPT -->
+<!-- EMBEDDED VANILLA JAVASCRIPT -->
   <script>
+    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwyaKvYEjJHEG31K0EFQDe9hxiGTeALN3MqsThdfTDaisUA_r4lxBHxbASQ9vemsYbqRw/exec";
+
     let currentLang = 'en';
 
     document.getElementById('year').textContent = new Date().getFullYear();
@@ -948,6 +950,23 @@
     if (modalDate) {
       modalDate.min = today;
       modalDate.value = today;
+    }
+
+    // Helper function to send data to Google Sheet
+    async function sendToGoogleSheet(data) {
+      try {
+        await fetch(GOOGLE_SHEET_URL, {
+          method: "POST",
+          mode: "no-cors", // Bypasses browser CORS restrictions with Google Apps Script
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(data)
+        });
+        console.log("Appointment sent to Google Sheet!");
+      } catch (err) {
+        console.error("Failed to send to Google Sheet:", err);
+      }
     }
 
     function toggleLanguage() {
@@ -1025,12 +1044,29 @@
       }
     });
 
-    function handleInlineBooking(e) {
+    // 1. Handles the Quick Booking Form on the Homepage Hero Section
+    async function handleInlineBooking(e) {
       e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = currentLang === 'bn' ? 'অপেক্ষা করুন...' : 'Submitting...';
+      }
+
       const name = document.getElementById('hero-name').value;
       const phone = document.getElementById('hero-phone').value;
       const date = document.getElementById('hero-date').value;
       const time = document.getElementById('hero-time').value;
+
+      // Send to Google Sheets
+      await sendToGoogleSheet({
+        timestamp: new Date().toLocaleString(),
+        name: name,
+        phone: '+880 ' + phone,
+        date: date,
+        time: time,
+        notes: 'Quick Booking (Homepage Hero)'
+      });
 
       const feedback = document.getElementById('hero-form-feedback');
       if (feedback) {
@@ -1042,22 +1078,37 @@
       document.getElementById('confirmed-phone').textContent = '+880 ' + phone;
       document.getElementById('confirmed-slot').textContent = date + ' (' + time + ')';
 
-      const btn = e.target.querySelector('button[type="submit"]');
       if (btn) {
-        btn.disabled = true;
         btn.classList.add('opacity-70', 'cursor-not-allowed');
         btn.innerHTML = currentLang === 'bn' ? 'অনুরোধ জমা হয়েছে &check;' : 'Request Submitted &check;';
       }
     }
 
-    function handleModalBooking(e) {
+    // 2. Handles the Popup Modal Booking Form
+    async function handleModalBooking(e) {
       e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = currentLang === 'bn' ? 'অপেক্ষা করুন...' : 'Submitting...';
+      }
+
       const name = document.getElementById('modal-name').value;
       const phone = document.getElementById('modal-phone').value;
       const date = document.getElementById('modal-date').value;
       const time = document.getElementById('modal-time').value;
       const notes = document.getElementById('modal-notes').value || 'N/A';
-      const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwyaKvYEjJHEG31K0EFQDe9hxiGTeALN3MqsThdfTDaisUA_r4lxBHxbASQ9vemsYbqRw/exec";
+
+      // Send to Google Sheets
+      await sendToGoogleSheet({
+        timestamp: new Date().toLocaleString(),
+        name: name,
+        phone: '+880 ' + phone,
+        date: date,
+        time: time,
+        notes: notes
+      });
+
       document.getElementById('confirmed-name').textContent = name;
       document.getElementById('confirmed-phone').textContent = '+880 ' + phone;
       document.getElementById('confirmed-slot').textContent = date + ' • ' + time;
@@ -1078,6 +1129,11 @@
 
       if (modalForm) modalForm.classList.add('hidden');
       if (modalSuccess) modalSuccess.classList.remove('hidden');
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span data-en="Confirm Appointment Request" data-bn="অনুরোধ জমা দিন">${currentLang === 'bn' ? 'অনুরোধ জমা দিন' : 'Confirm Appointment Request'}</span>`;
+      }
     }
   </script>
 </body>
